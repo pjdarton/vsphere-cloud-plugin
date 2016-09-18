@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.jenkinsci.plugins;
 
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
@@ -58,6 +57,7 @@ import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import jenkins.slaves.JnlpSlaveAgentProtocol;
 
 import org.jenkinsci.plugins.vsphere.VSphereGuestInfoProperty;
 import org.jenkinsci.plugins.vsphere.tools.CloudProvisioningState;
@@ -69,6 +69,7 @@ import org.jenkinsci.plugins.vsphere.tools.VSphereException;
  * @author ksmith
  */
 public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveTemplate> {
+
     private static final Logger LOGGER = Logger.getLogger(vSphereCloudSlaveTemplate.class.getName());
 
     protected static final SchemeRequirement HTTP_SCHEME = new SchemeRequirement("http");
@@ -103,28 +104,28 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
 
     @DataBoundConstructor
     public vSphereCloudSlaveTemplate(final String cloneNamePrefix,
-                final String masterImageName,
-                final String snapshotName,
-                final boolean linkedClone,
-                final String cluster,
-                final String resourcePool,
-                final String datastore,
-                final String templateDescription,
-                final int templateInstanceCap,
-                final int numberOfExecutors,
-                final String remoteFS,
-                final String labelString,
-                final Mode mode,
-                final boolean forceVMLaunch,
-                final boolean waitForVMTools,
-                final int launchDelay,
-                final int limitedRunCount,
-                final boolean saveFailure,
-                final String targetResourcePool,
-                final String targetHost,
-                final String credentialsId,
-                final List<? extends NodeProperty<?>> nodeProperties,
-                final List<? extends VSphereGuestInfoProperty> guestInfoProperties) {
+            final String masterImageName,
+            final String snapshotName,
+            final boolean linkedClone,
+            final String cluster,
+            final String resourcePool,
+            final String datastore,
+            final String templateDescription,
+            final int templateInstanceCap,
+            final int numberOfExecutors,
+            final String remoteFS,
+            final String labelString,
+            final Mode mode,
+            final boolean forceVMLaunch,
+            final boolean waitForVMTools,
+            final int launchDelay,
+            final int limitedRunCount,
+            final boolean saveFailure,
+            final String targetResourcePool,
+            final String targetHost,
+            final String credentialsId,
+            final List<? extends NodeProperty<?>> nodeProperties,
+            final List<? extends VSphereGuestInfoProperty> guestInfoProperties) {
         this.cloneNamePrefix = cloneNamePrefix;
         this.masterImageName = masterImageName;
         this.snapshotName = snapshotName;
@@ -184,7 +185,7 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
     }
 
     public int getTemplateInstanceCap() {
-        if(this.templateInstanceCap == Integer.MAX_VALUE) {
+        if (this.templateInstanceCap == Integer.MAX_VALUE) {
             return 0;
         }
         return this.templateInstanceCap;
@@ -257,7 +258,7 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
     protected Object readResolve() {
         this.labelSet = Label.parse(labelString);
 
-        if(this.templateInstanceCap == 0) {
+        if (this.templateInstanceCap == 0) {
             this.templateInstanceCap = Integer.MAX_VALUE;
         }
         return this;
@@ -270,10 +271,10 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
         final boolean POWER_ON = true;
         vSphere.cloneVm(cloneName, this.masterImageName, this.linkedClone, this.resourcePool, this.cluster, this.datastore, POWER_ON, logger);
         try {
-            if( this.guestInfoProperties!=null && !this.guestInfoProperties.isEmpty()) {
+            if (this.guestInfoProperties != null && !this.guestInfoProperties.isEmpty()) {
                 final Map<String, String> resolvedGuestInfoProperties = calculateGuestInfoProperties(cloneName, listener);
-                if( !resolvedGuestInfoProperties.isEmpty() ) {
-                    LOGGER.log(Level.FINE, "Provisioning slave {0} with guestinfo properties {1}", new Object[]{ cloneName, resolvedGuestInfoProperties });
+                if (!resolvedGuestInfoProperties.isEmpty()) {
+                    LOGGER.log(Level.FINE, "Provisioning slave {0} with guestinfo properties {1}", new Object[]{cloneName, resolvedGuestInfoProperties});
                     vSphere.addGuestInfoVariable(cloneName, resolvedGuestInfoProperties);
                 }
             }
@@ -282,7 +283,7 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
             slave = new vSphereCloudProvisionedSlave(cloneName, this.templateDescription, this.remoteFS, String.valueOf(this.numberOfExecutors), this.mode, this.labelString, configuredLauncher, configuredStrategy, this.nodeProperties, this.parent.getVsDescription(), cloneName, this.forceVMLaunch, this.waitForVMTools, snapshotName, String.valueOf(this.launchDelay), null, String.valueOf(this.limitedRunCount));
         } finally {
             // if anything went wrong, try to tidy up
-            if( slave==null ) {
+            if (slave == null) {
                 LOGGER.log(Level.FINER, "Creation of slave failed after cloning VM: destroying clone {0}", cloneName);
                 vSphere.destroyVm(cloneName, false);
             }
@@ -294,7 +295,7 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
     private ComputerLauncher determineLauncher(final VSphere vSphere, final String cloneName) throws VSphereException {
         LOGGER.log(Level.FINER, "Slave {0} uses SSHLauncher - obtaining IP address...", cloneName);
         final String ip = vSphere.getIp(vSphere.getVmByName(cloneName), 1000);
-        LOGGER.log(Level.FINER, "Slave {0} has IP address {1}", new Object[] { cloneName, ip });
+        LOGGER.log(Level.FINER, "Slave {0} has IP address {1}", new Object[]{cloneName, ip});
         final SSHLauncher launcher = new SSHLauncher(ip, 0, credentialsId, null, null, null, null, this.launchDelay, 3, 60);
         return launcher;
     }
@@ -302,8 +303,8 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
     private RetentionStrategy<?> determineRetention() {
 //      final CloudSlaveRetentionStrategy strategy = new CloudSlaveRetentionStrategy();
 //      strategy.TIMEOUT = TimeUnit2.MINUTES.toMillis(1);
-      final RunOnceCloudRetentionStrategy strategy = new RunOnceCloudRetentionStrategy(2);
-      return strategy;
+        final RunOnceCloudRetentionStrategy strategy = new RunOnceCloudRetentionStrategy(2);
+        return strategy;
     }
 
     @SuppressWarnings("unchecked")
@@ -314,6 +315,7 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<vSphereCloudSlaveTemplate> {
+
         @Override
         public String getDisplayName() {
             return null;
@@ -324,7 +326,7 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
         }
 
         public ListBoxModel doFillCredentialsIdItems(@AncestorInPath ItemGroup context) {
-            if(!(context instanceof AccessControlled ? (AccessControlled) context : Jenkins.getInstance()).hasPermission(Computer.CONFIGURE)) {
+            if (!(context instanceof AccessControlled ? (AccessControlled) context : Jenkins.getInstance()).hasPermission(Computer.CONFIGURE)) {
                 return new ListBoxModel();
             }
             final List<StandardUsernameCredentials> credentials = lookupCredentials(StandardUsernameCredentials.class, context, ACL.SYSTEM, HTTP_SCHEME, HTTPS_SCHEME);
@@ -336,7 +338,7 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
             throws IOException, InterruptedException {
         final EnvVars knownVariables = calculateVariablesForGuestInfo(cloneName, listener);
         final Map<String, String> resolvedGuestInfoProperties = new LinkedHashMap<String, String>();
-        for( final VSphereGuestInfoProperty property : this.guestInfoProperties ) {
+        for (final VSphereGuestInfoProperty property : this.guestInfoProperties) {
             final String name = property.getName();
             final String configuredValue = property.getValue();
             final String resolvedValue = Util.replaceMacro(configuredValue, knownVariables);
@@ -350,6 +352,11 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
         final EnvVars knownVariables = new EnvVars();
         // Maintenance note: If you update this method, you must also update the
         // UI help page to match.
+        final String slaveSecret = JnlpSlaveAgentProtocol.SLAVE_SECRET.mac(cloneName);
+        if (slaveSecret != null) {
+            addEnvVar(knownVariables, "JNLP_SECRET", slaveSecret);
+        }
+
         final String jenkinsUrl = Jenkins.getActiveInstance().getRootUrl();
         if (jenkinsUrl != null) {
             addEnvVar(knownVariables, "JENKINS_URL", jenkinsUrl);
@@ -371,14 +378,14 @@ public class vSphereCloudSlaveTemplate implements Describable<vSphereCloudSlaveT
     }
 
     private static void addEnvVars(final EnvVars vars, final TaskListener listener, final Iterable<? extends NodeProperty> nodeProperties) throws IOException, InterruptedException {
-        if( nodeProperties!=null ) {
-            for (final NodeProperty nodeProperty: nodeProperties) {
-                nodeProperty.buildEnvVars(vars , listener);
+        if (nodeProperties != null) {
+            for (final NodeProperty nodeProperty : nodeProperties) {
+                nodeProperty.buildEnvVars(vars, listener);
             }
         }
     }
 
     private static void addEnvVar(final EnvVars vars, final String name, final Object valueOrNull) {
-        vars.put(name, valueOrNull==null?"":valueOrNull.toString());
+        vars.put(name, valueOrNull == null ? "" : valueOrNull.toString());
     }
 }

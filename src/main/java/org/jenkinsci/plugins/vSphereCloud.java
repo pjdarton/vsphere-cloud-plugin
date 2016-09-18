@@ -21,6 +21,7 @@ import hudson.util.FormValidation;
 import hudson.util.StreamTaskListener;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -401,7 +402,7 @@ public class vSphereCloud extends Cloud {
             final vSphereCloudSlaveTemplate template = whatWeShouldSpinUp.getTemplate();
             final String cloneNamePrefix = template.getCloneNamePrefix();
             final int numberOfExecutors = template.getNumberOfExecutors();
-            final UUID cloneUUID = UUID.randomUUID();
+            final String cloneUUID = Long.toString(ByteBuffer.wrap(UUID.randomUUID().toString().getBytes()).getLong(), Character.MAX_RADIX);
             final String nodeName = cloneNamePrefix + "_" + cloneUUID;
             final Callable<Node> provisionNodeCallable = new Callable<Node>() {
                 public Node call() throws Exception {

@@ -404,7 +404,6 @@ public class vSphereCloud extends Cloud {
             final int numberOfExecutors = template.getNumberOfExecutors();
             final String cloneUUID = Long.toString(ByteBuffer.wrap(UUID.randomUUID().toString().getBytes()).getLong(), Character.MAX_RADIX);
             final String nodeName = cloneNamePrefix + "_" + cloneUUID;
-            final String nodeName = cloneNamePrefix + "_" + cloneUUID;
             final Callable<Node> provisionNodeCallable = new Callable<Node>() {
                 public Node call() throws Exception {
                     try {
